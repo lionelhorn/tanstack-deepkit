@@ -49,7 +49,7 @@ const wsUrl = `${location.protocol === 'https:' ? 'wss:' : 'ws:'}//${location.ho
 export const rpcClient = new RpcWebSocketClient(wsUrl)
 ```
 
-A [Vite plugin](vite-plugins/deepkit.ts) resolves the `~/rpc/transport` import to the correct file per environment (dev and production), so the consuming code always just imports `rpcClient`.
+A [Vite plugin](vite-plugins/deepkit.ts) resolves the `~/rpc/transport` import to `transport.server.ts` in the SSR environment and `transport.client.ts` in the client environment, so the consuming code always just imports `rpcClient`.
 
 ### WebSocket bridge ([`server/services/rpc-connection.service.ts`](server/services/rpc-connection.service.ts))
 
