@@ -51,6 +51,8 @@ export const rpcClient = new RpcWebSocketClient(wsUrl)
 
 A [Vite plugin](vite-plugins/deepkit.ts) resolves the `~/rpc/transport` import to `transport.server.ts` in the SSR environment and `transport.client.ts` in the client environment, so the consuming code always just imports `rpcClient`.
 
+This is necessary because TanStack Start code is [isomorphic by default](https://tanstack.com/start/latest/docs/framework/react/guide/execution-model#environment-specific-implementations) — all code is included in both server and client bundles unless explicitly constrained. Without the alias, `DirectClient` and the `RpcKernel` import would leak into the client bundle. The framework provides [build-time security checks](https://tanstack.com/start/latest/docs/framework/react/guide/code-execution-patterns) for its own primitives (`createServerFn`, `createServerOnlyFn`, `createIsomorphicFn`), but since we bypass those and call Deepkit RPC directly from loaders, the Vite alias is what keeps server code out of the client build.
+
 ### WebSocket bridge ([`server/services/rpc-connection.service.ts`](server/services/rpc-connection.service.ts))
 
 Bridges the web server's WebSocket connections to Deepkit's `kernel.createConnection()`:
