@@ -8,7 +8,9 @@
     "build": "vite build && tsc --noEmit",
     "preview": "vite preview",
     "start": "node .output/server/index.mjs",
-    "lint": "eslint ."
+    "lint": "eslint .",
+    "perf:capture": "node .claude/skills/vite-perf-skill/scripts/capture-vite-log.mjs",
+    "perf:analyze": "node .claude/skills/vite-perf-skill/scripts/analyze-deepkit-transforms.mjs"
   },
   "dependencies": {
     "@deepkit/app": "^1.0.19",

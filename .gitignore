@@ -1,3 +1,5 @@
 var
 .output
 node_modules
+tmp/
+.claude/skills

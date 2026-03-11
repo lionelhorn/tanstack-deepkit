@@ -10,7 +10,11 @@ const root = path.resolve(import.meta.dirname, '..')
  */
 export function deepkitTypeCompiler(): Plugin {
   return deepkitType({
-    include: './server/**/*.ts',
+    include: [
+      './server/**/*.ts',
+      './src/components/**/*.{ts,tsx}',
+      './src/models/**/*.ts',
+    ],
     compilerOptions: { sourceMap: true },
   })
 }
