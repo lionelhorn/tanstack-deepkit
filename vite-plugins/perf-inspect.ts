@@ -3,7 +3,7 @@ import path from 'node:path'
 import type { Plugin, ViteDevServer } from 'vite'
 import type { ViteInspectAPI } from 'vite-plugin-inspect'
 
-const OUTPUT_PATH = 'tmp/inspect-metrics.json'
+const OUTPUT_PATH = process.env.VITE_PERF_INSPECT_OUT || 'tmp/inspect-metrics.json'
 
 function getInspectApi(server: ViteDevServer): ViteInspectAPI | undefined {
   const plugin = server.config.plugins.find(
