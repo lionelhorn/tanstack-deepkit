@@ -10,6 +10,7 @@ import {
   deepkitTransportAlias,
   deepkitTypeCompiler,
 } from './vite-plugins/deepkit'
+import { perfInspect } from './vite-plugins/perf-inspect'
 
 /**
  * Rolldown-vite's OXC decorator lowering imports CJS helpers from
@@ -51,6 +52,7 @@ export default defineConfig({
   plugins: [
     oxcRuntimeEsmFix(),
     Inspect(),
+    perfInspect(),
     tailwindcss(),
     deepkitTypeCompiler(),
     deepkitTransportAlias(),
