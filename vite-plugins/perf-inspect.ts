@@ -13,39 +13,39 @@ function getInspectApi(server: ViteDevServer): ViteInspectAPI | undefined {
   return api?.rpc ? api : undefined
 }
 
-export function perfInspect(): Plugin {
+async function dumpMetrics(server: ViteDevServer) {
+  const api = getInspectApi(server)
+  if (!api) return
+  try {
+    const metadata = await api.rpc.getMetadata()
+    const query = {
+      vite: metadata.instances[0].vite,
+      env: metadata.instances[0].environments[0],
+    }
+    const [pluginMetrics, modules] = await Promise.all([
+      api.rpc.getPluginMetrics(query),
+      api.rpc.getModulesList(query),
+    ])
+    const outDir = path.dirname(OUTPUT_PATH)
+    if (!fs.existsSync(outDir))
+      fs.mkdirSync(outDir, { recursive: true })
+    fs.writeFileSync(
+      OUTPUT_PATH,
+      JSON.stringify({ pluginMetrics, modules }, null, 2),
+    )
+    console.log(`[perf-inspect] Metrics written to ${OUTPUT_PATH}`)
+  } catch (err) {
+    console.warn('[perf-inspect] Failed to dump metrics:', err)
+  }
+}
+
+export function perfInspect(intervalMs = 3000): Plugin {
   return {
     name: 'perf-inspect',
 
     configureServer(server) {
-      const originalClose = server.close.bind(server)
-      server.close = async () => {
-        const api = getInspectApi(server)
-        if (api) {
-          try {
-            const metadata = await api.rpc.getMetadata()
-            const query = {
-              vite: metadata.instances[0].vite,
-              env: metadata.instances[0].environments[0],
-            }
-            const [pluginMetrics, modules] = await Promise.all([
-              api.rpc.getPluginMetrics(query),
-              api.rpc.getModulesList(query),
-            ])
-            const outDir = path.dirname(OUTPUT_PATH)
-            if (!fs.existsSync(outDir))
-              fs.mkdirSync(outDir, { recursive: true })
-            fs.writeFileSync(
-              OUTPUT_PATH,
-              JSON.stringify({ pluginMetrics, modules }, null, 2),
-            )
-            console.log(`[perf-inspect] Metrics written to ${OUTPUT_PATH}`)
-          } catch (err) {
-            console.warn('[perf-inspect] Failed to dump metrics:', err)
-          }
-        }
-        return originalClose()
-      }
+      const interval = setInterval(() => dumpMetrics(server), intervalMs)
+      interval.unref()
     },
   }
 }
