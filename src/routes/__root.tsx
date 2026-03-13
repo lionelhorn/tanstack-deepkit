@@ -8,12 +8,7 @@ import {
   Scripts,
   createRootRoute,
 } from '@tanstack/react-router'
-import appCss from '~/styles/app.css?url'
-
 export const Route = createRootRoute({
-  head: () => ({
-    links: [{ rel: 'stylesheet', href: appCss }],
-  }),
   component: RootComponent,
 })
 
@@ -46,7 +41,6 @@ function RootDocument({ children }: { children: React.ReactNode }) {
             <div className="flex items-center h-14 gap-1">
               <NavLink to="/">Home</NavLink>
               <NavLink to="/posts">Posts</NavLink>
-              <NavLink to="/bench">Bench</NavLink>
             </div>
           </div>
         </nav>

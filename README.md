@@ -1,3 +1,15 @@
+## Reproduction: @oxc-project/runtime ESM exports bug
+
+See https://github.com/oxc-project/oxc/issues/XXXX
+
+### Steps
+
+1. `pnpm install`
+2. `pnpm dev`
+3. Open `http://localhost:3000` → `ReferenceError: module is not defined`
+
+---
+
 # TanStack Start + Deepkit RPC (Single Process)
 
 A working POC of Deepkit RPC integrated with [TanStack Start](https://tanstack.com/start) (React SSR framework, similar role to Angular Universal) in a **single Node.js process**.
