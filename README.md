@@ -1,6 +1,6 @@
 ## Reproduction: @oxc-project/runtime ESM exports bug
 
-See https://github.com/oxc-project/oxc/issues/XXXX
+See https://github.com/oxc-project/oxc/issues/20351
 
 ### Steps
 
