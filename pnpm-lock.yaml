@@ -4,9 +4,6 @@ settings:
   autoInstallPeers: true
   excludeLinksFromLockfile: false
 
-overrides:
-  crossws: '>=0.4.4'
-
 importers:
 
   .:
@@ -32,6 +29,9 @@ importers:
       '@deepkit/framework':
         specifier: ^1.0.19
         version: 1.0.19(f3b05611f83cff9cadf578f4e2b925de)
+      '@deepkit/http':
+        specifier: ^1.0.19
+        version: 1.0.19(342cd83ef9d5ac6e5d01f2fba9d7f79c)
       '@deepkit/injector':
         specifier: ^1.0.19
         version: 1.0.19(@deepkit/core@1.0.19)(@deepkit/type@1.0.19(@deepkit/core@1.0.19))
@@ -72,6 +72,9 @@ importers:
       '@deepkit/type-compiler':
         specifier: ^1.0.19
         version: 1.0.19(rollup@4.57.1)(typescript@5.9.3)
+      '@deepkit/type-compiler-oxc':
+        specifier: link:../oxc-reflection-spike/napi
+        version: link:../oxc-reflection-spike/napi
       '@deepkit/vite':
         specifier: ^1.0.19
         version: 1.0.19(@deepkit/type-compiler@1.0.19(rollup@4.57.1)(typescript@5.9.3))(rollup@4.57.1)
@@ -2172,7 +2175,7 @@ packages:
     engines: {node: '>=20.11.1'}
     hasBin: true
     peerDependencies:
-      crossws: '>=0.4.4'
+      crossws: ^0.4.1
     peerDependenciesMeta:
       crossws:
         optional: true
@@ -3086,6 +3089,7 @@ packages:
 
   uuid@8.3.2:
     resolution: {integrity: sha512-+NYs2QeMWy+GWFOEm9xnn6HCDp0l7QBD7ml8zLUmJ+93Q5NF0NocErnwkTkXVFNiX3/fpC6afS8Dhb/gz7R7eg==}
+    deprecated: uuid@10 and below is no longer supported.  For ESM codebases, update to uuid@latest.  For CommonJS codebases, use uuid@11 (but be aware this version will likely be deprecated in 2028).
     hasBin: true
 
   vary@1.1.2:

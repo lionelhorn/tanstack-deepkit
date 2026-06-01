@@ -18,6 +18,7 @@
     "@deepkit/event": "^1.0.19",
     "@deepkit/filesystem": "^1.0.19",
     "@deepkit/framework": "^1.0.19",
+    "@deepkit/http": "^1.0.19",
     "@deepkit/injector": "^1.0.19",
     "@deepkit/logger": "^1.0.19",
     "@deepkit/rpc": "^1.0.19",
@@ -33,6 +34,7 @@
   },
   "devDependencies": {
     "@deepkit/type-compiler": "^1.0.19",
+    "@deepkit/type-compiler-oxc": "link:../oxc-reflection-spike/napi",
     "@deepkit/vite": "^1.0.19",
     "@tailwindcss/vite": "^4.1.18",
     "@types/node": "^22.5.4",

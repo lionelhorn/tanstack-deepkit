@@ -1,0 +1,4 @@
+allowBuilds:
+  '@deepkit/type-compiler': true
+  '@deepkit/vite': true
+  esbuild: true
