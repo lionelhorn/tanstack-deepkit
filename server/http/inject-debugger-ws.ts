@@ -3,21 +3,23 @@ import type { ServerResponse } from 'node:http'
 /**
  * Script injected (in-memory, per request) into the debugger GUI's index.html.
  *
- * The prebuilt GUI opens its RPC socket via `provideRpcWebSocketClient(undefined)`
- * → `webSocketFromBaseUrl(location.origin)`, which drops the path and connects to
- * the root `ws://<host>/`. Nothing answers a WS upgrade there (that path is
- * TanStack SSR over HTTP), so the GUI shows DISCONNECTED. The bundle has no hook
- * to repoint it, so we wrap `WebSocket` before Angular loads and rewrite the
- * root-path socket to `/rpc`, which server/routes/rpc.ts bridges to the RpcKernel
- * that `debug:true` populates with Deepkit's DebugController.
+ * The prebuilt GUI opens its RPC socket from a URL it derives at runtime — some
+ * views use `location.origin` (→ root `ws://<host>/`), others build it from
+ * `location.pathname` (→ `ws://<host>/_debug/...`). Either way nothing answers a
+ * WS upgrade there: in this stack the sole WebSocket endpoint is `/rpc`, which
+ * Nitro routes to server/routes/rpc.ts → the RpcKernel that `debug:true` populates
+ * with Deepkit's DebugController. (Deepkit's own server attaches `ws` to the bare
+ * http.Server with no path filter, so the GUI's path-agnostic dialing "just works"
+ * there; Nitro routes WS by path, so it doesn't here.) The bundle exposes no hook
+ * to repoint the socket, so we wrap `WebSocket` before Angular loads and force
+ * every socket it opens to the same-origin `/rpc`.
  */
 const WS_REPOINT_SCRIPT =
   '<script>(function(){' +
   'var Orig=window.WebSocket;' +
+  'var rpc=(location.protocol==="https:"?"wss://":"ws://")+location.host+"/rpc";' +
   'window.WebSocket=new Proxy(Orig,{construct:function(Target,args){' +
-  'var url=String(args[0]);' +
-  "if(/^wss?:\\/\\/[^/]+\\/?$/.test(url))url=url.replace(/\\/?$/,'/rpc');" +
-  'return new Target(url,args[1]);' +
+  'return new Target(rpc,args[1]);' +
   '}});' +
   '})();</script>'
 

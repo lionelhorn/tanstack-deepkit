@@ -10,11 +10,13 @@ export const app = new App({
   controllers: [PostsController],
   providers: [PostService, RpcConnectionService],
   imports: [
-    // `debug: true` auto-registers the debugger HTTP controller; `debugUrl`
-    // moves it under /api/ so its routes don't collide with TanStack SSR.
-    // The static controller rewrites the GUI's `<base href="/">` to this
-    // prefix, so its relative assets resolve under /api/_deepkit/.
-    new FrameworkModule({ debug: true, debugUrl: 'api/_deepkit' }),
+    // `debug: true` auto-registers the debugger HTTP controller at Deepkit's
+    // native default `debugUrl: '_debug'`. We keep that default deliberately:
+    // the prebuilt GUI hardcodes `/_debug/api/media/...` for filesystem media
+    // previews, so any other prefix silently breaks them. The static controller
+    // rewrites the GUI's `<base href="/">` to `/_debug/`, so its relative assets
+    // resolve. `/_debug/**` is bridged to this HttpKernel in vite.config.ts.
+    new FrameworkModule({ debug: true }),
   ],
 })
 

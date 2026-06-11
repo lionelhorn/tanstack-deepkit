@@ -30,10 +30,11 @@ export default defineConfig({
       experimental: { websocket: true, vite: {} } as any,
       handlers: [
         { route: '/rpc', handler: './server/routes/rpc.ts' },
-        // Deepkit HTTP controllers (the /api/_deepkit debugger UI) — forwarded
-        // to Deepkit's HttpKernel. Scoped to /api/** so the rest of the URL
-        // space stays with TanStack SSR.
-        { route: '/api/**', handler: './server/routes/api.ts' },
+        // Deepkit HTTP controllers (the /_debug debugger UI + its static assets)
+        // — forwarded to Deepkit's HttpKernel. rou3's `/_debug/**` also matches
+        // the bare `/_debug` parent, so one route covers index + assets. The rest
+        // of the URL space stays with TanStack SSR.
+        { route: '/_debug/**', handler: './server/routes/api.ts' },
       ],
     }),
   ],
