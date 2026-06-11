@@ -1,61 +1,90 @@
 import path from 'node:path'
-import { createRequire } from 'node:module'
 import { performance } from 'node:perf_hooks'
-import { deepkitType } from '@deepkit/vite'
+import { deepkitType, type Options } from '@deepkit/vite'
 import type { Plugin } from 'vite'
 
 const root = path.resolve(import.meta.dirname, '..')
-const require = createRequire(import.meta.url)
+
+/** Widens `@deepkit/vite` Options — upstream types `include`/`exclude` as `string` but arrays work at runtime. */
+interface DeepkitTypeOptions extends Omit<Options, 'include' | 'exclude'> {
+  include?: string | string[]
+  exclude?: string | string[]
+}
 
 /**
  * Deepkit type compiler — ONLY for server .ts files.
  * Must be listed before tanstackStart since it uses enforce: 'pre'.
  *
- * Set DEEPKIT_OXC=1 to swap the engine to the experimental Oxc/Rust native addon
- * (`@deepkit/type-compiler-oxc`, linked from the local spike) instead of the official
- * TypeScript transformer. Same `__type` bytecode + same `@deepkit/type` runtime — only the
- * transform engine differs. The addon is loaded lazily so the default path never touches it.
+ * Set DEEPKIT_OXC=1 to swap the engine to the Oxc/Rust native addon
+ * (`@lionelhorn/deepkit-vite-oxc`) instead of the official `@deepkit/type-compiler`.
+ * Same `__type` bytecode + same `@deepkit/type` runtime — only the transform engine
+ * differs, so both can be A/B timed against the identical file scope. The oxc package
+ * and its ~4 MB native addon are loaded lazily (see `deepkitTypeOxc`), so the default
+ * path never touches them.
  */
-export function deepkitTypeCompiler(): Plugin {
+export function deepkitTypeCompiler(options: DeepkitTypeOptions = {}): Plugin {
+  // Both engines transform the same scope (server .ts only) so the A/B timings compare like for like.
+  const include = options.include ?? './server/**/*.ts'
   if (process.env.DEEPKIT_OXC) {
-    const { transform } = require('@deepkit/type-compiler-oxc') as {
-      transform: (
-        code: string,
-        filename: string,
-        options?: { reflection?: string; tsConfigPath?: string; sourceMaps?: boolean },
-      ) => { code: string; map?: string }
-    }
-    // Same scope as the official plugin below: server .ts only, skip node_modules.
-    return {
-      name: 'deepkit-type-oxc',
-      enforce: 'pre',
-      transform(code, id) {
-        const file = id.split('?')[0].replace(/\\/g, '/')
-        if (!file.endsWith('.ts') || file.includes('/node_modules/')) return null
-        if (!file.includes('/server/')) return null
-        const reflection = 'default'
-        const tsConfigPath: string | undefined = undefined
-        // Mirror @deepkit/type-compiler's per-file debug line (gated on DEBUG=deepkit), prefixed
-        // [oxc] so the two engines' timings can be A/B compared in the same build output. The
-        // `reflection`/`config` fields reflect what this plugin passes the addon; `took` is the
-        // measured wall time of the native transform call. Timed with performance.now() for sub-ms
-        // precision (the official side's `took` is Date.now()/integer-ms inside @deepkit/type-compiler).
-        const start = performance.now()
-        const out = transform(code, file, { reflection, tsConfigPath, sourceMaps: true })
-        if ((process.env.DEBUG ?? '').includes('deepkit')) {
-          const took = performance.now() - start
-          console.debug(
-            `[oxc] Transform file with reflection=${reflection} took ${took.toFixed(3)}ms (esm) ${file} via config ${tsConfigPath || 'none'}.`,
-          )
-        }
-        return { code: out.code, map: out.map }
-      },
-    }
+    return deepkitTypeOxc({ ...options, include })
   }
   return deepkitType({
-    include: './server/**/*.ts',
-    compilerOptions: { sourceMap: true },
+    ...options,
+    // @ts-expect-error -- upstream types `include`/`exclude` as `string` but arrays work at runtime
+    include,
+    compilerOptions: { sourceMap: true, ...options.compilerOptions },
   })
+}
+
+/** A Rollup `transform` hook in its bare-function form (what `@lionelhorn/deepkit-vite-oxc` returns). */
+type TransformFn = (this: unknown, code: string, id: string) => { code: string; map?: string } | null
+
+/**
+ * Oxc/Rust engine swap for `deepkitTypeCompiler`, active under `DEEPKIT_OXC=1`.
+ *
+ * The package is pulled in with a lazy `await import()` in `buildStart`, not at factory time, so
+ * it — and its native addon — stays entirely unloaded unless `DEEPKIT_OXC=1`. `@vite-ignore` keeps
+ * rolldown from tracing the vendored `.node`. The factory stays synchronous (a Vite Plugin factory
+ * cannot be async) by returning a thin wrapper that delegates the package plugin's lone `transform` hook.
+ */
+function deepkitTypeOxc(options: DeepkitTypeOptions): Plugin {
+  // NB: NOT named `transform` — the deepkit reflection build rewrites a plugin's `transform(code, id)`
+  // method shorthand into a named function expression whose own name would shadow a same-named local.
+  let innerTransform: TransformFn | undefined
+  return {
+    name: 'deepkit-type-oxc',
+    enforce: 'pre',
+    async buildStart() {
+      const mod = (await import(/* @vite-ignore */ '@lionelhorn/deepkit-vite-oxc')) as {
+        deepkitType: (o?: { include?: string | string[]; exclude?: string | string[] }) => Plugin
+      }
+      // The package owns its own include/exclude filtering; forward the caller's globs. Its plugin
+      // has a single bare-function `transform` hook (no buildStart/other hooks), so delegating that
+      // one hook is complete. Accept the ObjectHook form defensively in case a future version wraps it.
+      const hook = mod.deepkitType({ include: options.include, exclude: options.exclude }).transform as
+        | TransformFn
+        | { handler: TransformFn }
+        | undefined
+      innerTransform = typeof hook === 'function' ? hook : hook?.handler
+      if (!innerTransform) {
+        throw new Error(
+          'DEEPKIT_OXC=1 but @lionelhorn/deepkit-vite-oxc deepkitType() returned a plugin with no transform hook. ' +
+          'Run pnpm install so the package is wired into devkit.',
+        )
+      }
+    },
+    transform(code, id) {
+      if (!innerTransform) return null
+      const start = performance.now()
+      const out = innerTransform.call(this, code, id)
+      if (out && (process.env.DEBUG ?? '').includes('deepkit')) {
+        const took = performance.now() - start
+        const norm = id.split('?')[0].replace(/\\/g, '/')
+        console.debug(`[oxc] Transform file with reflection=default took ${took.toFixed(3)}ms (esm) ${norm} via config none.`)
+      }
+      return out
+    },
+  }
 }
 
 /**
